@@ -1,0 +1,29 @@
+---
+sidebar_position: 1
+---
+
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
+# 1.再次
+
+## 人物性格娱乐解析工具
+
+一个独立的小工具页（八字 + 星盘，纯前端实现，人物档案存在浏览器 localStorage 里）。
+默认走**模拟模式**，不依赖后端；取消勾选后会请求 `http://127.0.0.1:8000/api/analyze_person`。
+
+<iframe
+  src={useBaseUrl('/tools/personality-analyzer.html')}
+  title="人物性格娱乐解析工具"
+  style={{
+    width: '100%',
+    height: '85vh',
+    minHeight: '800px',
+    border: '1px solid var(--ifm-color-emphasis-200)',
+    borderRadius: '8px',
+    backgroundColor: 'var(--ifm-background-color)',
+  }}
+/>
+
+想全屏看的话，也可以<a href={useBaseUrl('/tools/personality-analyzer.html')} target="_blank" rel="noopener noreferrer">在新标签页中单独打开</a>。
+
+> 源文件：`static/tools/personality-analyzer.html`（放在 `static/` 下才会被原样发布出去；用 iframe 内嵌而不是直接链接，是为了绕开 Docusaurus 的客户端路由劫持）
