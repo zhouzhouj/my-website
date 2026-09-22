@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>人物性格娱乐解析工具</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary:'#7c3aed',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body{background: linear-gradient(135deg,#f0e7ff,#f8fafc);min-height:100vh;}
+    table{border-collapse: collapse;width:100%;}
+    table td,table th{border:1px solid #e5e7eb;padding:6px 8px;font-size:13px;}
+  </style>
+</head>
+<body class="pb-12">
+<div class="max-w-xl mx-auto px-4 py-6">
+
+  <!-- 人物档案管理区域 -->
+  <div class="bg-white rounded-2xl shadow-lg p-4 mb-4">
+    <div class="flex justify-between items-center mb-2">
+      <h2 class="text-lg font-bold text-gray-700">📂人物档案</h2>
+      <button id="clearNewRecord" class="text-sm text-primary">清空表单</button>
+    </div>
+    <div id="archiveList" class="space-y-2 max-h-40 overflow-y-auto"></div>
+    <div class="mt-2 text-xs text-gray-400">档案保存在浏览器本地，清除浏览器数据会丢失</div>
+  </div>
+
+  <!-- 主表单 -->
+  <div class="bg-white rounded-2xl shadow-lg p-6 mb-4">
+    <h1 class="text-2xl font-bold text-primary text-center mb-2">人物性格娱乐解析</h1>
+    <p class="text-sm text-gray-500 text-center mb-6">输入出生信息，娱乐化推演性格、送礼、旅行、吵架心理</p>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">人物名称（档案保存用）</label>
+        <input id="personName" type="text" placeholder="例如：对象A" class="w-full border border-gray-300 rounded-xl px-3 py-2">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">历法类型</label>
+        <div class="flex gap-3">
+          <label class="flex items-center gap-1">
+            <input type="radio" name="calType" value="solar" checked class="accent-primary">
+            <span>公历</span>
+          </label>
+          <label class="flex items-center gap-1">
+            <input type="radio" name="calType" value="lunar" class="accent-primary">
+            <span>农历</span>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">出生日期</label>
+        <input id="birthDate" type="date" class="w-full border border-gray-300 rounded-xl px-3 py-2 outline-primary">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">出生时间（尽量精确，不知道可留空）</label>
+        <input id="birthTime" type="time" class="w-full border border-gray-300 rounded-xl px-3 py-2 outline-primary">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">出生城市</label>
+        <input id="birthCity" type="text" placeholder="例：郑州市" class="w-full border border-gray-300 rounded-xl px-3 py-2">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">选择解析场景（可多选）</label>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="flex items-center gap-1 border rounded-xl p-2">
+            <input type="checkbox" value="character" checked class="accent-primary">
+            <span>性格&处事</span>
+          </label>
+          <label class="flex items-center gap-1 border rounded-xl p-2">
+            <input type="checkbox" value="gift" class="accent-primary">
+            <span>情侣送礼建议</span>
+          </label>
+          <label class="flex items-center gap-1 border rounded-xl p-2">
+            <input type="checkbox" value="travel" class="accent-primary">
+            <span>旅行偏好</span>
+          </label>
+          <label class="flex items-center gap-1 border rounded-xl p-2">
+            <input type="checkbox" value="quarrel" class="accent-primary">
+            <span>吵架内心活动</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button id="saveArchiveBtn" class="w-1/3 bg-gray-500 text-white py-3 rounded-xl text-sm">保存档案</button>
+        <button id="submitBtn" class="w-2/3 bg-primary text-white py-3 rounded-xl text-lg">
+          <i class="fa fa-magic mr-1"></i>开始解析
+        </button>
+      </div>
+      <div class="text-xs text-gray-400">
+        <label><input type="checkbox" id="useMockMode" checked> 模拟模式（不调用后端接口）</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- 结果卡片 -->
+  <div id="resultWrap" class="hidden bg-white rounded-2xl shadow-lg p-6 space-y-4">
+    <h2 class="text-lg font-bold">📋解析结果</h2>
+    <div id="loadingTip" class="text-center py-4">
+      <i class="fa fa-circle-o-notch fa-spin"></i> 正在分析，请稍候…
+    </div>
+
+    <!-- 八字表格 -->
+    <div id="baziWrap" class="hidden">
+      <h3 class="font-bold mb-2">🔮八字排盘</h3>
+      <div id="baziTable"></div>
+    </div>
+
+    <!-- 星盘表格 -->
+    <div id="astroWrap" class="hidden">
+      <h3 class="font-bold mt-4 mb-2">⭐星盘核心信息</h3>
+      <div id="astroTable"></div>
+    </div>
+
+    <div id="resultContent" class="prose max-none whitespace-pre-line text-gray-700 mt-4"></div>
+  </div>
+
+  <!-- 免责声明 -->
+  <div class="mt-6 text-xs text-gray-400 bg-white rounded-xl p-4">
+    <strong>⚠️免责声明：</strong>本工具基于八字、星盘民俗文化做娱乐性格推演，不具备科学依据，仅供情侣玩乐参考，不可作为感情、人生重大决策依据。若缺少出生时间，排盘精度会大幅下降。
+  </div>
+</div>
+
+<script>
+// =========本地档案存储工具函数 localStorage =========
+const ARCHIVE_KEY = "person_archive_list";
+function getArchiveList(){
+  const raw = localStorage.getItem(ARCHIVE_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+function saveArchiveList(list){
+  localStorage.setItem(ARCHIVE_KEY, JSON.stringify(list));
+}
+function renderArchiveUI(){
+  const wrap = document.getElementById("archiveList");
+  const list = getArchiveList();
+  wrap.innerHTML = "";
+  if(list.length ===0){
+    wrap.innerHTML = "<div class='text-xs text-gray-400'>暂无档案，请填写信息保存</div>";
+    return;
+  }
+  list.forEach((item,idx)=>{
+    const div = document.createElement("div");
+    div.className = "flex justify-between items-center border rounded-xl p-2";
+    div.innerHTML = `
+      <span class="text-sm flex-1 cursor-pointer archive-item" data-idx="${idx}">${item.name}</span>
+      <button class="text-xs text-red-400 del-archive" data-idx="${idx}">删除</button>
+    `;
+    wrap.appendChild(div);
+  })
+  //绑定点击回填
+  document.querySelectorAll(".archive-item").forEach(el=>{
+    el.onclick = ()=>{
+      const idx = Number(el.dataset.idx);
+      const item = getArchiveList()[idx];
+      fillForm(item);
+    }
+  })
+  document.querySelectorAll(".del-archive").forEach(el=>{
+    el.onclick = ()=>{
+      const idx = Number(el.dataset.idx);
+      const arr = getArchiveList();
+      arr.splice(idx,1);
+      saveArchiveList(arr);
+      renderArchiveUI();
+    }
+  })
+}
+//表单回填
+function fillForm(obj){
+  document.getElementById("personName").value = obj.name||"";
+  document.getElementById("birthDate").value = obj.birth_date||"";
+  document.getElementById("birthTime").value = obj.birth_time||"";
+  document.querySelector(`input[name="calType"][value="${obj.calendar_type||'solar'}"]`).checked=true;
+  document.getElementById("birthCity").value = obj.birth_city||"";
+}
+
+//保存当前表单为档案
+document.getElementById("saveArchiveBtn").addEventListener("click",()=>{
+  const name = document.getElementById("personName").value.trim();
+  if(!name){alert("请输入人物名称");return;}
+  const item = {
+    name,
+    birth_date: document.getElementById("birthDate").value,
+    birth_time: document.getElementById("birthTime").value,
+    calendar_type: document.querySelector('input[name="calType"]:checked').value,
+    birth_city: document.getElementById("birthCity").value
+  }
+  const arr = getArchiveList();
+  arr.push(item);
+  saveArchiveList(arr);
+  renderArchiveUI();
+  alert("档案已保存");
+})
+
+document.getElementById("clearNewRecord").onclick = ()=>{
+  document.getElementById("personName").value="";
+  document.getElementById("birthDate").value="";
+  document.getElementById("birthTime").value="";
+  document.getElementById("birthCity").value="";
+}
+
+//页面初始化渲染档案列表
+renderArchiveUI();
+
+// =========解析提交逻辑=========
+const submitBtn = document.getElementById('submitBtn');
+const resultWrap = document.getElementById('resultWrap');
+const loadingTip = document.getElementById('loadingTip');
+const resultContent = document.getElementById('resultContent');
+const baziWrap = document.getElementById("baziWrap");
+const baziTable = document.getElementById("baziTable");
+const astroWrap = document.getElementById("astroWrap");
+const astroTable = document.getElementById("astroTable");
+const useMockMode = document.getElementById("useMockMode");
+
+submitBtn.addEventListener('click',async ()=>{
+  const birthDate = document.getElementById('birthDate').value;
+  const birthTime = document.getElementById('birthTime').value;
+  const birthCity = document.getElementById('birthCity').value;
+  const calType = document.querySelector('input[name="calType"]:checked').value;
+
+  const sceneList = [];
+  document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb=>{
+    if(["character","gift","travel","quarrel"].includes(cb.value)){
+      sceneList.push(cb.value);
+    }
+  })
+
+  if(!birthDate){
+    alert('请选择出生日期');
+    return;
+  }
+  if(sceneList.length===0){
+    alert('请至少选择一个解析场景');
+    return;
+  }
+
+  resultWrap.classList.remove('hidden');
+  loadingTip.classList.remove('hidden');
+  baziWrap.classList.add("hidden");
+  astroWrap.classList.add("hidden");
+  resultContent.innerText = '';
+
+  const payload = {
+    birth_date:birthDate,
+    birth_time:birthTime,
+    calendar_type:calType,
+    birth_city:birthCity,
+    scene:sceneList
+  }
+  console.log('提交参数',payload);
+
+  try{
+    let resData;
+    if(useMockMode.checked){
+      //模拟模式
+      await new Promise(resolve=>setTimeout(resolve,1200));
+      resData = {
+        bazi_data:{
+          "year": "己卯",
+          "month": "癸酉",
+          "day": "甲子",
+          "hour": "丁卯",
+          "ten_god": ["年:正印", "月:比肩", "日:日主", "时:伤官"],
+          "five_element": {"木": 4, "火": 1, "土": 1, "金": 2, "水": 3}
+        },
+        astro_data:{
+          "sun": "天秤座",
+          "moon": "巨蟹座",
+          "asc": "狮子座",
+          "venus": "处女座",
+          "mars": "天蝎座",
+          "main_house": [1,4,7,10],
+          "aspect": ["月亮拱金星", "太阳刑火星"]
+        },
+        ai_text:`## 性格&处事模式
+> 【演示数据，对接大模型后会替换为真实解读】
+月亮巨蟹内心敏感重情绪，太阳天秤待人温和在意平衡；
+为人顾及他人感受，但内心容易内耗，遇事习惯先隐忍。
+
+## 情侣送礼建议
+1. 氛围感礼物：香薰、氛围灯，重视情绪体验
+2. 有纪念意义的定制小物件，看重回忆感
+3. 柔软舒适质感的生活用品
+
+## 旅行偏好
+偏好慢节奏旅行；喜欢海边、民宿度假，其次人文老城；不喜欢高强度特种兵旅游。
+
+## 吵架内心活动
+表面尽量避免冲突，会退让；内心委屈，期待被共情，不喜欢讲道理式争辩。`
+      }
+    }else{
+      //调用真实后端接口
+      const resp = await fetch("http://127.0.0.1:8000/api/analyze_person",{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      })
+      resData = await resp.json();
+    }
+
+    loadingTip.classList.add('hidden');
+
+    //渲染八字表格
+    const b = resData.bazi_data;
+    baziWrap.classList.remove("hidden");
+    baziTable.innerHTML = `
+    <table>
+      <thead><tr><th>年柱</th><th>月柱</th><th>日柱</th><th>时柱</th></tr></thead>
+      <tbody>
+        <tr><td>${b.year}</td><td>${b.month}</td><td>${b.day}</td><td>${b.hour||"未知"}</td></tr>
+        <tr><td>${b.ten_god[0]||""}</td><td>${b.ten_god[1]||""}</td><td>${b.ten_god[2]||""}</td><td>${b.ten_god[3]||""}</td></tr>
+      </tbody>
+    </table>
+    <div class="mt-2 text-xs">五行统计：${JSON.stringify(b.five_element)}</div>
+    `;
+
+    //渲染星盘表格
+    const a = resData.astro_data;
+    astroWrap.classList.remove("hidden");
+    astroTable.innerHTML = `
+    <table>
+      <tr><td>太阳</td><td>${a.sun}</td></tr>
+      <tr><td>月亮</td><td>${a.moon}</td></tr>
+      <tr><td>上升</td><td>${a.asc}</td></tr>
+      <tr><td>金星</td><td>${a.venus}</td></tr>
+      <tr><td>火星</td><td>${a.mars}</td></tr>
+      <tr><td>主要宫位</td><td>${a.main_house.join(",")}</td></tr>
+      <tr><td>主要相位</td><td>${a.aspect.join("；")}</td></tr>
+    </table>
+    `;
+
+    resultContent.innerText = resData.ai_text;
+
+  }catch(err){
+    loadingTip.classList.add('hidden');
+    resultContent.innerText = '请求出错，请检查后端服务是否启动';
+    console.error(err);
+  }
+})
+</script>
+</body>
+</html>
